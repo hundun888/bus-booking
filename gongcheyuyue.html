@@ -763,7 +763,7 @@ async function renderBoard() {
   tbody.innerHTML = records.map((r, i) => {
     const vType = r.vehicle.startsWith('埃安') ? 'aion' : 'wm';
     const badgeClass = vType === 'aion' ? 'badge-aion' : 'badge-wm';
-    const carpoolStr = (r.carpool && r.carpool.length) ? r.carpool.join('、') : '—';
+    const carpoolStr = safeCarpool(r.carpool).join('、') || '—'
 
     // 检查是否超时
     let statusHtml = '';
@@ -945,7 +945,7 @@ async function refreshAdminBoard() {
   const tbody = document.getElementById('adminBoardBody');
   tbody.innerHTML = records.map((r, i) => {
     const badgeClass = r.vehicle.startsWith('埃安') ? 'badge-aion' : 'badge-wm';
-    const carpoolStr = (r.carpool && r.carpool.length) ? r.carpool.join('、') : '—';
+    const carpoolStr = safeCarpool(r.carpool).join('、') || '—'
 
     let statusHtml = '';
     if (r.status === '已归还' || r.status === '已完成') {
@@ -1039,8 +1039,17 @@ function refreshVehicleSelect() {
   });
 }
 
-// ============================================================
-//  工具函数
+function safeCarpool(carpool) {
+  if (Array.isArray(carpool)) return carpool;
+  if (typeof carpool === 'string') {
+    try {
+      const parsed = JSON.parse(carpool);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return carpool ? [carpool] : []; }
+  }
+  if (carpool == null) return [];
+  return [];
+}
 // ============================================================
 function formatDt(iso) {
   if (!iso) return '—';
@@ -1091,7 +1100,7 @@ function doExport(data, sheetName) {
     '借车人': r.borrower,
     '驾驶员': r.driver,
     '驾驶员手机': r.driver_phone || '',
-    '拼车人': (r.carpool && r.carpool.length) ? r.carpool.join('、') : '',
+    '拼车人': safeCarpool(r.carpool).join('、'),
     '状态': r.status,
     '创建时间': r.created_at ? new Date(r.created_at).toLocaleString('zh-CN', { hour12: false }) : '',
   }));
